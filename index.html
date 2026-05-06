@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redo Return Local: Go global, return local</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --page-bg: #F7F6F4;
+      --surface-bg: #FFFFFF;
+      --text-primary: #2A2A28;
+      --text-secondary: #5A5955;
+      --divider: #E4E3DF;
+      --orange: #FF4405;
+      --gray-200: #E4E3DF;
+      --gray-400: #9B9A96;
+      --gray-600: #5A5955;
+      --gray-800: #2A2A28;
+      --green: #16A34A;
+      --red: #DC2626;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--page-bg);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── LAYOUT ─────────────────────────────────────────── */
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 48px;
+    }
+
+    section { padding: 96px 0; }
+    section + section { border-top: 1px solid var(--divider); }
+
+    /* ─── NAV ─────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(247,246,244,0.94);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .nav-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 48px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo img { height: 28px; display: block; }
+
+    .nav-cta {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      padding: 10px 24px;
+      text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    .nav-cta:hover { opacity: 0.88; }
+
+    /* ─── HERO ────────────────────────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      padding: 0;
+      border-top: none !important;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 40%, rgba(255,68,5,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 80% at 10% 80%, rgba(180,80,30,0.05) 0%, transparent 50%),
+        #F7F6F4;
+    }
+
+    /* Subtle terrain-like SVG texture */
+    .hero-texture {
+      position: absolute;
+      inset: 0;
+      opacity: 0.12;
+      background-image: url("data:image/svg+xml,%3Csvg width='800' height='400' viewBox='0 0 800 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 300 Q100 250 200 280 Q300 310 400 260 Q500 210 600 250 Q700 290 800 240 L800 400 L0 400Z' fill='%232A2A28'/%3E%3Cpath d='M0 350 Q150 310 300 330 Q450 350 600 320 Q700 305 800 310 L800 400 L0 400Z' fill='%232A2A28' opacity='0.5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-position: bottom;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      padding: 160px 48px 120px;
+      max-width: 1120px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .hero-eyebrow {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 24px;
+    }
+
+    .hero-headline {
+      font-family: 'Instrument Serif', serif;
+      font-weight: 400;
+      font-synthesis: none;
+      font-size: clamp(52px, 7vw, 88px);
+      line-height: 1.0;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      margin-bottom: 32px;
+      max-width: 820px;
+    }
+
+    .hero-sub {
+      font-family: 'Instrument Serif', serif;
+      font-weight: 400;
+      font-synthesis: none;
+      font-style: italic;
+      font-size: clamp(20px, 2.4vw, 28px);
+      line-height: 1.4;
+      color: var(--text-secondary);
+      margin-bottom: 48px;
+      max-width: 560px;
+    }
+
+    .btn-primary {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      padding: 16px 40px;
+      text-decoration: none;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    .btn-secondary {
+      display: inline-block;
+      background: transparent;
+      border: 1px solid rgba(42,42,40,0.2);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      padding: 16px 40px;
+      text-decoration: none;
+      margin-left: 16px;
+      transition: border-color 0.15s;
+    }
+    .btn-secondary:hover { border-color: rgba(42,42,40,0.5); }
+
+    /* ─── SECTION HEADERS ─────────────────────────────────── */
+    .section-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-family: 'Instrument Serif', serif;
+      font-weight: 400;
+      font-synthesis: none;
+      font-size: clamp(32px, 4vw, 48px);
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+      margin-bottom: 24px;
+    }
+
+    .section-body {
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      line-height: 28px;
+      color: var(--text-secondary);
+      max-width: 640px;
+    }
+
+    /* ─── PROBLEM SECTION ─────────────────────────────────── */
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 56px;
+    }
+
+    .review-card {
+      background: var(--surface-bg);
+      border: 1px solid var(--divider);
+      padding: 28px;
+    }
+
+    .review-stars {
+      color: #EF4444;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .review-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .review-body {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      line-height: 22px;
+      color: var(--text-secondary);
+    }
+
+    .review-meta {
+      margin-top: 16px;
+      font-size: 11px;
+      color: var(--gray-600);
+      letter-spacing: 0.04em;
+    }
+
+    .review-card.featured {
+      grid-column: span 2;
+      background: rgba(220,38,38,0.04);
+      border-color: rgba(220,38,38,0.18);
+    }
+
+    .featured-quote {
+      font-family: 'Instrument Serif', serif;
+      font-weight: 400;
+      font-synthesis: none;
+      font-style: italic;
+      font-size: 22px;
+      line-height: 32px;
+      color: var(--text-primary);
+    }
+
+    /* ─── CX IMPACT ────────────────────────────────────────── */
+    .cx-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--divider);
+      margin-top: 56px;
+    }
+
+    .cx-item {
+      background: var(--surface-bg);
+      padding: 32px 24px;
+    }
+
+    .cx-number {
+      font-family: 'Instrument Serif', serif;
+      font-weight: 400;
+      font-synthesis: none;
+      font-size: 40px;
+      line-height: 1.0;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .cx-number.accent { color: var(--orange); }
+
+    .cx-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .cx-desc {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      line-height: 20px;
+      color: var(--gray-600);
+    }
+
+    /* ─── COMPARISON ──────────────────────────────────────── */
+    .comparison-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 56px;
+    }
+
+    .compare-card {
+      padding: 40px;
+      border: 1px solid var(--divider);
+    }
+
+    .compare-card.redo-card {
+      background: var(--surface-bg);
+      border-color: rgba(22,163,74,0.35);
+    }
+
+    .compare-card.others-card {
+      background: rgba(220,38,38,0.03);
+      border-color: rgba(220,38,38,0.15);
+    }
+
+    .compare-logo {
+      height: 32px;
+      display: block;
+      margin-bottom: 32px;
+    }
+
+    .compare-others-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    .compare-list { list-style: none; }
+
+    .compare-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--divider);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .compare-list li:last-child { border-bottom: none; }
+
+    .compare-list .icon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      margin-top: 1px;
+    }
+
+    .compare-list .metric {
+      font-weight: 600;
+      display: block;
+    }
+
+    .compare-list .detail {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .good .icon { color: var(--green); }
+    .bad .icon { color: var(--red); }
+
+    /* ─── HOW IT WORKS ─────────────────────────────────────── */
+    .steps-wrapper {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--divider);
+      margin-top: 56px;
+    }
+
+    .step-card {
+      background: var(--surface-bg);
+      padding: 40px 32px;
+      position: relative;
+    }
+
+    .step-number {
+      font-family: 'Instrument Serif', serif;
+      font-weight: 400;
+      font-synthesis: none;
+      font-size: 56px;
+      line-height: 1.0;
+      color: rgba(42,42,40,0.07);
+      position: absolute;
+      top: 24px;
+      right: 28px;
+    }
+
+    .step-icon {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 24px;
+      color: var(--text-secondary);
+    }
+
+    .step-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .step-body {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      line-height: 22px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+
+    .step-note {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--green);
+      letter-spacing: 0.04em;
+    }
+
+    .step-note.orange { color: var(--orange); }
+
+    /* arrow connector */
+    .steps-wrapper .step-card:not(:last-child)::after {
+      content: '→';
+      position: absolute;
+      top: 50%;
+      right: -18px;
+      transform: translateY(-50%);
+      color: var(--text-secondary);
+      font-size: 18px;
+      z-index: 2;
+    }
+
+    /* ─── FORWARD FULFILLMENT ─────────────────────────────── */
+    .ff-layout {
+      display: grid;
+      grid-template-columns: 5fr 7fr;
+      gap: 48px;
+      margin-top: 56px;
+      align-items: start;
+    }
+
+    .ff-flow {
+      background: var(--surface-bg);
+      border: 1px solid var(--divider);
+      padding: 40px 32px;
+    }
+
+    .ff-flow-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .ff-flow-item:last-child { border-bottom: none; }
+
+    .ff-flow-icon {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      background: rgba(22,163,74,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--green);
+    }
+
+    .ff-flow-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .ff-flow-desc {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      line-height: 20px;
+      color: var(--text-secondary);
+    }
+
+    .ff-benefits {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .ff-benefit {
+      background: var(--surface-bg);
+      border: 1px solid var(--divider);
+      border-top: 2px solid var(--green);
+      padding: 24px;
+    }
+
+    .ff-benefit-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      line-height: 20px;
+    }
+
+    .ff-benefit-desc {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      line-height: 20px;
+      color: var(--text-secondary);
+    }
+
+    /* ─── SOCIAL PROOF ─────────────────────────────────────── */
+    .brands-intro {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .brands-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--divider);
+    }
+
+    .brand-cell {
+      background: var(--surface-bg);
+      padding: 32px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-cell span {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    /* ─── CTA SECTION ─────────────────────────────────────── */
+    .cta-section {
+      text-align: center;
+      padding: 120px 48px;
+    }
+
+    .cta-eyebrow {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 24px;
+    }
+
+    .cta-headline {
+      font-family: 'Instrument Serif', serif;
+      font-weight: 400;
+      font-synthesis: none;
+      font-size: clamp(36px, 5vw, 64px);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      margin-bottom: 24px;
+    }
+
+    .cta-sub {
+      font-family: 'Inter', sans-serif;
+      font-size: 17px;
+      line-height: 28px;
+      color: var(--text-secondary);
+      max-width: 520px;
+      margin: 0 auto 48px;
+    }
+
+    .cta-btn-large {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      padding: 20px 56px;
+      text-decoration: none;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+
+    .cta-btn-large:hover { opacity: 0.88; transform: translateY(-2px); }
+
+    /* ─── FOOTER ──────────────────────────────────────────── */
+    footer {
+      background: #EEECEA;
+      border-top: 1px solid var(--divider);
+      padding: 40px 48px;
+    }
+
+    .footer-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-logo img { height: 22px; display: block; }
+
+    .footer-copy {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: var(--gray-600);
+    }
+
+    /* ─── DIVIDER ACCENT ──────────────────────────────────── */
+    .accent-rule {
+      width: 48px;
+      height: 1px;
+      background: var(--orange);
+      margin: 24px 0 40px;
+    }
+
+    /* ─── SVG ICONS (inline) ──────────────────────────────── */
+    svg { fill: none; }
+
+    /* ─── RESPONSIVE ──────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .container { padding: 0 24px; }
+      .hero-content { padding: 140px 24px 96px; }
+      .problem-grid { grid-template-columns: 1fr; }
+      .review-card.featured { grid-column: span 1; }
+      .cx-grid { grid-template-columns: repeat(2, 1fr); }
+      .comparison-wrapper { grid-template-columns: 1fr; }
+      .steps-wrapper { grid-template-columns: 1fr; }
+      .steps-wrapper .step-card::after { display: none; }
+      .ff-layout { grid-template-columns: 1fr; }
+      .brands-grid { grid-template-columns: repeat(2, 1fr); }
+      .footer-inner { flex-direction: column; gap: 16px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ─── NAV ──────────────────────────────────────────────── -->
+  <nav>
+    <div class="nav-inner">
+      <a class="nav-logo" href="#">
+        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjI1NSIgdmlld0JveD0iMCAwIDgwMCAyNTUiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNODAwIDBIMFYyNTVIODAwVjBaTTc0NS41NyAxMjYuMTQ5Qzc0NS41NyAxMzguMjM0IDc0My4wODggMTY1LjQ3MiA3MTUuNzkgMTg0LjA3OEM3MDguNzI3IDE4OC44NzQgNzAxLjg1NSAxOTIuMTM1IDY5My44MzcgMTk0LjQzN0M2ODYuMDExIDE5Ni43MzkgNjc0LjE3NSAxOTkuMDQgNjU1LjA4NSAxOTkuMDRDNjI2LjQ1MSAxOTkuMDQgNjA5LjA3OSAxOTIuNzEgNTk4LjE5OCAxODYuMTg4QzU5NC41NzEgMTg0LjA3OCA1ODcuODkgMTc5LjY2NyA1ODEuMjA5IDE3MS42MUM1NjYuODkxIDE1NC4xNTUgNTY2LjMxOSAxMzYuNTA3IDU2Ni4zMTkgMTI3Ljg3NkM1NjYuMzE5IDkzLjczMTggNTg0LjQ1NCA3Ni42NTk5IDU5NS41MjYgNjkuMTc5QzYwNi45NzkgNjEuMzE0NCA2MjMuMzk3IDU0LjQwODkgNjUzLjU1OCA1NC4wMjUzQzY1OS42NjcgNTQuMDI1MyA2NjUuNTg1IDU0LjAyNTMgNjcxLjY5MyA1NC42MDA4QzcwNy4zOTEgNTcuNDc4IDcyMy45OTkgNzEuNjcyNiA3MzMuMzUzIDg1LjA5OTlDNzM3Ljc0MyA5MS42MjE4IDc0NS41NyAxMDUuNjI1IDc0NS41NyAxMjYuMTQ5Wk02OTUuOTM3IDEyNi41MzNDNjk1LjkzNyAxMDkuMjY5IDY4OC42ODMgOTguMzM1NCA2ODMuNzIgOTMuOTIzNkM2ODEuODExIDkyLjAwNTQgNjc3LjIyOSA4OC41NTI3IDY3MC43MzkgODYuMjUwOUM2NjcuMzAzIDg1LjA5OTkgNjYzLjY3NiA4NC4xNDA5IDY1Ni40MjIgODQuMTQwOUM2NTAuMTIyIDg0LjE0MDkgNjQ0Ljk2OCA4NC43MTYzIDYzOS4wNSA4Ny4yMUM2MjMuMjA2IDkzLjkyMzYgNjE1Ljk1MiAxMTAuMjI4IDYxNS45NTIgMTI2LjcyNUM2MTUuOTUyIDEyOS4yMTggNjE2LjE0MyAxMzYuMTI0IDYxOC42MjQgMTQzLjIyMUM2MjYuNjQyIDE2Ny4zOSA2NDguNDA0IDE2OS4xMTcgNjU2LjYxMiAxNjkuMTE3QzY1OC45MDMgMTY5LjExNyA2NjcuNDk0IDE2OS4xMTcgNjc0Ljc0OCAxNjUuODU2QzY4OS44MjggMTU5LjE0MiA2OTUuOTM3IDE0MS44NzggNjk1LjkzNyAxMjYuNTMzWk01NTMuMTA2IDEyOC4yNTlDNTUzLjEwNiAxMzQuMzk3IDU1Mi41MzMgMTU2LjQ1NyA1MzguNzg5IDE3Mi41NjlDNTM2LjQ5OCAxNzUuNDQ3IDUzMS43MjUgMTgwLjI0MiA1MjMuNzA4IDE4NC44NDZDNTIwLjg0NCAxODYuMzggNTE0LjczNiAxODkuNjQxIDUwNi41MjcgMTkxLjc1MUM0OTkuNjU1IDE5My40NzggNDk0LjY5MSAxOTQuNDM3IDQ4MS4xMzggMTk0LjQzN0gzOTUuNjE2VjU5LjAxMjdINDcyLjE2NkM0NzcuNTExIDU5LjAxMjcgNDgyLjg1NiA1OS4yMDQ1IDQ4OC4yMDEgNTkuNTg4MUM1MTkuNTA4IDYyLjI3MzYgNTMzLjI1MyA3NS41MDkxIDU0MS4yNyA4Ny4yMUM1NTIuNzI0IDEwMy43MDYgNTUzLjEwNiAxMjAuOTcgNTUzLjEwNiAxMjguMjU5Wk01MDUuOTU0IDEyNy4xMDhDNTA1Ljk1NCAxMjIuODg4IDUwNS4zODIgMTA3LjczNSA0OTMuNTQ2IDk4LjUyNzNDNDgzLjgzNiA5MS4xNjM2IDQ3MC4yNTggOTEuMjIwNCA0NjYuMzExIDkxLjIzNjlDNDY2LjE0NiA5MS4yMzc2IDQ2NS45OTcgOTEuMjM4MiA0NjUuODY2IDkxLjIzODJINDQyLjc2OFYxNjMuNzQ2SDQ2Ny4zOTNDNDcwLjA2NiAxNjMuNzQ2IDQ3Mi45MjkgMTYzLjU1NCA0NzUuNzkzIDE2My4xN0M0OTIuNDAxIDE2MS4wNiA0OTguMzE5IDE1My41NzkgNTAxLjU2NCAxNDYuNjc0QzUwNS43NjMgMTM4LjA0MiA1MDUuOTU0IDEzMC43NTMgNTA1Ljk1NCAxMjcuMTA4Wk0yMjguNjg1IDE5NC40MzdIMzcyLjYyMVYxNjMuNzQ2SDI3Ni45ODJWMTQyLjA3SDM2My44MzlWMTExLjU3MUgyNzYuOTgyVjg5LjMySDM3MC45MDNWNTkuMDEyN0gyMjguNjg1VjE5NC40MzdaTTIwOS4xMDcgMTk0LjQzN0gxNTUuODQ3TDEyNy45NzYgMTQ1LjEzOUgxMDIuMzk2VjE5NC40MzdINTMuOTA4MlY1OS4wMTI3SDE1My4xNzRDMTcxLjMwOSA1OS4wMTI3IDE4OC42ODEgNjAuMzU1NCAxOTkuNTYyIDc3LjYxOTFDMjAyLjA0NCA4MS42NDczIDIwNi40MzQgODkuNzAzNyAyMDYuNDM0IDEwMS45OEMyMDYuNDM0IDEwOC4zMSAyMDUuMDk4IDEyNi4zNDEgMTg4LjEwOCAxMzUuNzRDMTg0Ljg2MyAxMzcuNjU4IDE4Mi4zODEgMTM4LjYxNyAxNzUuNTA5IDE0MC4zNDRMMjA5LjEwNyAxOTQuNDM3Wk0xNTguMzI4IDEwMi4xNzJDMTU4LjMyOCAxMDEuMDIxIDE1OC4xMzcgOTcuOTUxOSAxNTYuMjI4IDk1LjI2NjRDMTUyLjk4MyA5MC40NzA5IDE0Ny42MzggODkuNzAzNyAxNDIuNDg0IDg5LjcwMzdIMTAyLjM5NlYxMTQuNjRIMTM4LjY2NkMxNDcuODI5IDExNC42NCAxNTIuNjAxIDExMy40ODkgMTU1LjY1NiAxMDkuODQ1QzE1OC4xMzcgMTA2Ljc3NiAxNTguMzI4IDEwMy43MDYgMTU4LjMyOCAxMDIuMTcyWiIgZmlsbD0iIzE0MTQxNCIvPgo8L3N2Zz4K" alt="REDO" />
+      </a>
+      <a href="https://redo.com/get-started/demo" class="nav-cta">Get a demo</a>
+    </div>
+  </nav>
+
+  <!-- ─── HERO ───────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-texture"></div>
+    <div class="hero-content">
+      <p class="hero-eyebrow">Redo Return Local</p>
+      <h1 class="hero-headline">Go global.<br/>Return local.</h1>
+      <p class="hero-sub">International returns, solved. Lower costs, faster refunds, and one seamless portal for every customer, wherever they are.</p>
+      <a href="https://redo.com/get-started/demo" class="btn-primary">Book a demo</a>
+      <a href="#problem" class="btn-secondary">See how it works</a>
+    </div>
+  </section>
+
+  <!-- ─── PROBLEM ────────────────────────────────────────────── -->
+  <section id="problem">
+    <div class="container">
+      <p class="section-label">The problem</p>
+      <h2 class="section-title">International customers are getting left behind</h2>
+      <div class="accent-rule"></div>
+      <p class="section-body">Every day, shoppers around the world are hit with surprise return shipping fees, weeks-long waits, and unexpected duties. The result? Scathing reviews, abandoned carts, and customers who never come back.</p>
+
+      <div class="problem-grid">
+        <div class="review-card featured">
+          <p class="featured-quote">"All this for a £175 pair of boots. The product might be fine, but the international returns process is not: it is slow, confusing, and unnecessarily expensive. I simply cannot recommend buying from outside the US."</p>
+          <p class="review-meta" style="margin-top:20px;">★☆☆☆☆ &nbsp;·&nbsp; Unprompted review, Aug 2025</p>
+        </div>
+
+        <div class="review-card">
+          <p class="review-title">International customers beware: difficult sizing and unfair fees</p>
+          <p class="review-stars">★☆☆☆☆</p>
+          <p class="review-body">I paid a huge amount of money for nothing, just to try on boots and send them back. Their "flat exchange fee" doesn't even include shipping. If you're outside the US, think very carefully before buying from this company.</p>
+          <p class="review-meta">MZ · GB · Nov 2025 · Unprompted</p>
+        </div>
+
+        <div class="review-card">
+          <p class="review-title">Do not buy from them if you're international</p>
+          <p class="review-stars">★☆☆☆☆</p>
+          <p class="review-body">They do not cover the shipping back ($70 CDN) and they do not refund taxes ($35 CDN). I paid a third of the price of the boots just to return them. Plus their sizing is way off.</p>
+          <p class="review-meta">SP · CA · Nov 2025 · Unprompted</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── CX IMPACT ──────────────────────────────────────────── -->
+  <section id="impact">
+    <div class="container">
+      <p class="section-label">Business impact</p>
+      <h2 class="section-title">Bad international returns cost you four ways</h2>
+      <div class="accent-rule"></div>
+
+      <div class="cx-grid">
+        <div class="cx-item">
+          <div class="cx-number accent">01</div>
+          <div class="cx-label">Checkout conversion drops</div>
+          <div class="cx-desc">Shoppers check your returns policy before they buy. A bad one kills the sale before it starts.</div>
+        </div>
+        <div class="cx-item">
+          <div class="cx-number">02</div>
+          <div class="cx-label">Repeat purchase rate falls</div>
+          <div class="cx-desc">An international customer who had a painful return will never come back, and they'll tell others.</div>
+        </div>
+        <div class="cx-item">
+          <div class="cx-number">03</div>
+          <div class="cx-label">Negative reviews pile up</div>
+          <div class="cx-desc">1-star reviews about returns surface on Trustpilot, Google, and Reddit, where they rank in search.</div>
+        </div>
+        <div class="cx-item">
+          <div class="cx-number">04</div>
+          <div class="cx-label">Heavy CX support burden</div>
+          <div class="cx-desc">Confused international returnees flood your support team with tickets, escalations, and disputes.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── COMPARISON ─────────────────────────────────────────── -->
+  <section id="solution">
+    <div class="container">
+      <p class="section-label">The Redo difference</p>
+      <h2 class="section-title">International returns, finally done right</h2>
+      <div class="accent-rule"></div>
+      <p class="section-body">While competitors ship every return thousands of miles back to your US warehouse, Redo Return Local processes items in-country, dramatically cutting cost and time.</p>
+
+      <div class="comparison-wrapper">
+        <!-- REDO -->
+        <div class="compare-card redo-card">
+          <img class="compare-logo" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjI1NSIgdmlld0JveD0iMCAwIDgwMCAyNTUiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNODAwIDBIMFYyNTVIODAwVjBaTTc0NS41NyAxMjYuMTQ5Qzc0NS41NyAxMzguMjM0IDc0My4wODggMTY1LjQ3MiA3MTUuNzkgMTg0LjA3OEM3MDguNzI3IDE4OC44NzQgNzAxLjg1NSAxOTIuMTM1IDY5My44MzcgMTk0LjQzN0M2ODYuMDExIDE5Ni43MzkgNjc0LjE3NSAxOTkuMDQgNjU1LjA4NSAxOTkuMDRDNjI2LjQ1MSAxOTkuMDQgNjA5LjA3OSAxOTIuNzEgNTk4LjE5OCAxODYuMTg4QzU5NC41NzEgMTg0LjA3OCA1ODcuODkgMTc5LjY2NyA1ODEuMjA5IDE3MS42MUM1NjYuODkxIDE1NC4xNTUgNTY2LjMxOSAxMzYuNTA3IDU2Ni4zMTkgMTI3Ljg3NkM1NjYuMzE5IDkzLjczMTggNTg0LjQ1NCA3Ni42NTk5IDU5NS41MjYgNjkuMTc5QzYwNi45NzkgNjEuMzE0NCA2MjMuMzk3IDU0LjQwODkgNjUzLjU1OCA1NC4wMjUzQzY1OS42NjcgNTQuMDI1MyA2NjUuNTg1IDU0LjAyNTMgNjcxLjY5MyA1NC42MDA4QzcwNy4zOTEgNTcuNDc4IDcyMy45OTkgNzEuNjcyNiA3MzMuMzUzIDg1LjA5OTlDNzM3Ljc0MyA5MS42MjE4IDc0NS41NyAxMDUuNjI1IDc0NS41NyAxMjYuMTQ5Wk02OTUuOTM3IDEyNi41MzNDNjk1LjkzNyAxMDkuMjY5IDY4OC42ODMgOTguMzM1NCA2ODMuNzIgOTMuOTIzNkM2ODEuODExIDkyLjAwNTQgNjc3LjIyOSA4OC41NTI3IDY3MC43MzkgODYuMjUwOUM2NjcuMzAzIDg1LjA5OTkgNjYzLjY3NiA4NC4xNDA5IDY1Ni40MjIgODQuMTQwOUM2NTAuMTIyIDg0LjE0MDkgNjQ0Ljk2OCA4NC43MTYzIDYzOS4wNSA4Ny4yMUM2MjMuMjA2IDkzLjkyMzYgNjE1Ljk1MiAxMTAuMjI4IDYxNS45NTIgMTI2LjcyNUM2MTUuOTUyIDEyOS4yMTggNjE2LjE0MyAxMzYuMTI0IDYxOC42MjQgMTQzLjIyMUM2MjYuNjQyIDE2Ny4zOSA2NDguNDA0IDE2OS4xMTcgNjU2LjYxMiAxNjkuMTE3QzY1OC45MDMgMTY5LjExNyA2NjcuNDk0IDE2OS4xMTcgNjc0Ljc0OCAxNjUuODU2QzY4OS44MjggMTU5LjE0MiA2OTUuOTM3IDE0MS44NzggNjk1LjkzNyAxMjYuNTMzWk01NTMuMTA2IDEyOC4yNTlDNTUzLjEwNiAxMzQuMzk3IDU1Mi41MzMgMTU2LjQ1NyA1MzguNzg5IDE3Mi41NjlDNTM2LjQ5OCAxNzUuNDQ3IDUzMS43MjUgMTgwLjI0MiA1MjMuNzA4IDE4NC44NDZDNTIwLjg0NCAxODYuMzggNTE0LjczNiAxODkuNjQxIDUwNi41MjcgMTkxLjc1MUM0OTkuNjU1IDE5My40NzggNDk0LjY5MSAxOTQuNDM3IDQ4MS4xMzggMTk0LjQzN0gzOTUuNjE2VjU5LjAxMjdINDcyLjE2NkM0NzcuNTExIDU5LjAxMjcgNDgyLjg1NiA1OS4yMDQ1IDQ4OC4yMDEgNTkuNTg4MUM1MTkuNTA4IDYyLjI3MzYgNTMzLjI1MyA3NS41MDkxIDU0MS4yNyA4Ny4yMUM1NTIuNzI0IDEwMy43MDYgNTUzLjEwNiAxMjAuOTcgNTUzLjEwNiAxMjguMjU5Wk01MDUuOTU0IDEyNy4xMDhDNTA1Ljk1NCAxMjIuODg4IDUwNS4zODIgMTA3LjczNSA0OTMuNTQ2IDk4LjUyNzNDNDgzLjgzNiA5MS4xNjM2IDQ3MC4yNTggOTEuMjIwNCA0NjYuMzExIDkxLjIzNjlDNDY2LjE0NiA5MS4yMzc2IDQ2NS45OTcgOTEuMjM4MiA0NjUuODY2IDkxLjIzODJINDQyLjc2OFYxNjMuNzQ2SDQ2Ny4zOTNDNDcwLjA2NiAxNjMuNzQ2IDQ3Mi45MjkgMTYzLjU1NCA0NzUuNzkzIDE2My4xN0M0OTIuNDAxIDE2MS4wNiA0OTguMzE5IDE1My41NzkgNTAxLjU2NCAxNDYuNjc0QzUwNS43NjMgMTM4LjA0MiA1MDUuOTU0IDEzMC43NTMgNTA1Ljk1NCAxMjcuMTA4Wk0yMjguNjg1IDE5NC40MzdIMzcyLjYyMVYxNjMuNzQ2SDI3Ni45ODJWMTQyLjA3SDM2My44MzlWMTExLjU3MUgyNzYuOTgyVjg5LjMySDM3MC45MDNWNTkuMDEyN0gyMjguNjg1VjE5NC40MzdaTTIwOS4xMDcgMTk0LjQzN0gxNTUuODQ3TDEyNy45NzYgMTQ1LjEzOUgxMDIuMzk2VjE5NC40MzdINTMuOTA4MlY1OS4wMTI3SDE1My4xNzRDMTcxLjMwOSA1OS4wMTI3IDE4OC42ODEgNjAuMzU1NCAxOTkuNTYyIDc3LjYxOTFDMjAyLjA0NCA4MS42NDczIDIwNi40MzQgODkuNzAzNyAyMDYuNDM0IDEwMS45OEMyMDYuNDM0IDEwOC4zMSAyMDUuMDk4IDEyNi4zNDEgMTg4LjEwOCAxMzUuNzRDMTg0Ljg2MyAxMzcuNjU4IDE4Mi4zODEgMTM4LjYxNyAxNzUuNTA5IDE0MC4zNDRMMjA5LjEwNyAxOTQuNDM3Wk0xNTguMzI4IDEwMi4xNzJDMTU4LjMyOCAxMDEuMDIxIDE1OC4xMzcgOTcuOTUxOSAxNTYuMjI4IDk1LjI2NjRDMTUyLjk4MyA5MC40NzA5IDE0Ny42MzggODkuNzAzNyAxNDIuNDg0IDg5LjcwMzdIMTAyLjM5NlYxMTQuNjRIMTM4LjY2NkMxNDcuODI5IDExNC42NCAxNTIuNjAxIDExMy40ODkgMTU1LjY1NiAxMDkuODQ1QzE1OC4xMzcgMTA2Ljc3NiAxNTguMzI4IDEwMy43MDYgMTU4LjMyOCAxMDIuMTcyWiIgZmlsbD0iIzE0MTQxNCIvPgo8L3N2Zz4K" alt="REDO" />
+          <ul class="compare-list">
+            <li class="good">
+              <svg class="icon" viewBox="0 0 20 20" stroke="currentColor" stroke-width="2"><polyline points="4 10 8 14 16 6"/></svg>
+              <div><span class="metric">$0 – $20 return shipping</span><span class="detail">Covered or dramatically reduced via returns coverage</span></div>
+            </li>
+            <li class="good">
+              <svg class="icon" viewBox="0 0 20 20" stroke="currentColor" stroke-width="2"><polyline points="4 10 8 14 16 6"/></svg>
+              <div><span class="metric">Local drop-off</span><span class="detail">Convenient in-country locations in CA, AU, and GB</span></div>
+            </li>
+            <li class="good">
+              <svg class="icon" viewBox="0 0 20 20" stroke="currentColor" stroke-width="2"><polyline points="4 10 8 14 16 6"/></svg>
+              <div><span class="metric">3–4 day inspection and processing</span><span class="detail">Items verified at local hub, refund issued fast</span></div>
+            </li>
+            <li class="good">
+              <svg class="icon" viewBox="0 0 20 20" stroke="currentColor" stroke-width="2"><polyline points="4 10 8 14 16 6"/></svg>
+              <div><span class="metric">Returns duty and tax free</span><span class="detail">No surprise charges, ever</span></div>
+            </li>
+            <li class="good">
+              <svg class="icon" viewBox="0 0 20 20" stroke="currentColor" stroke-width="2"><polyline points="4 10 8 14 16 6"/></svg>
+              <div><span class="metric">One portal for domestic and international</span><span class="detail">Unified experience your customers already know</span></div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- OTHERS -->
+        <div class="compare-card others-card">
+          <p class="compare-others-label">Loop · Narvar · Swap · Aftership · GlobalE · ReturnGo · Frate</p>
+          <ul class="compare-list">
+            <li class="bad">
+              <svg class="icon" viewBox="0 0 20 20" stroke="currentColor" stroke-width="2"><line x1="4" y1="4" x2="16" y2="16"/><line x1="16" y1="4" x2="4" y2="16"/></svg>
+              <div><span class="metric">$25 – $80 return shipping</span><span class="detail">Customers absorb international freight costs</span></div>
+            </li>
+            <li class="bad">
+              <svg class="icon" viewBox="0 0 20 20" stroke="currentColor" stroke-width="2"><line x1="4" y1="4" x2="16" y2="16"/><line x1="16" y1="4" x2="4" y2="16"/></svg>
+              <div><span class="metric">Limited drop-off options</span><span class="detail">Often requires trips to specific carriers or post offices</span></div>
+            </li>
+            <li class="bad">
+              <svg class="icon" viewBox="0 0 20 20" stroke="currentColor" stroke-width="2"><line x1="4" y1="4" x2="16" y2="16"/><line x1="16" y1="4" x2="4" y2="16"/></svg>
+              <div><span class="metric">2-week inspection and processing</span><span class="detail">Cross-border shipping delays slow everything down</span></div>
+            </li>
+            <li class="bad">
+              <svg class="icon" viewBox="0 0 20 20" stroke="currentColor" stroke-width="2"><line x1="4" y1="4" x2="16" y2="16"/><line x1="16" y1="4" x2="4" y2="16"/></svg>
+              <div><span class="metric">Duties + taxes sometimes charged</span><span class="detail">Customers surprised by unexpected charges on return</span></div>
+            </li>
+            <li class="bad">
+              <svg class="icon" viewBox="0 0 20 20" stroke="currentColor" stroke-width="2"><line x1="4" y1="4" x2="16" y2="16"/><line x1="16" y1="4" x2="4" y2="16"/></svg>
+              <div><span class="metric">Segmented portal experience</span><span class="detail">International customers sent to a different flow or unsupported entirely</span></div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── HOW IT WORKS ────────────────────────────────────────── -->
+  <section id="how-it-works">
+    <div class="container">
+      <p class="section-label">Operations breakdown</p>
+      <h2 class="section-title">Three steps in the return journey</h2>
+      <div class="accent-rule"></div>
+      <p class="section-body">Every international return moves through three billing stages. The first two can be offset entirely with Redo returns coverage, making international returns nearly free for the shopper.</p>
+
+      <div class="steps-wrapper">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <svg class="step-icon" viewBox="0 0 48 48" stroke="currentColor" stroke-width="1.5">
+            <rect x="4" y="18" width="32" height="20" rx="2"/>
+            <path d="M36 28h6l-4-8H4"/>
+            <circle cx="12" cy="38" r="3"/>
+            <circle cx="30" cy="38" r="3"/>
+          </svg>
+          <div class="step-title">First mile shipment</div>
+          <div class="step-body">Shopper drops off at a convenient local location. The item ships to the in-country return hub, not all the way back to your US warehouse.</div>
+          <div class="step-note">✓ Can be offset with returns coverage</div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <svg class="step-icon" viewBox="0 0 48 48" stroke="currentColor" stroke-width="1.5">
+            <rect x="6" y="10" width="36" height="28" rx="2"/>
+            <line x1="6" y1="18" x2="42" y2="18"/>
+            <line x1="18" y1="10" x2="18" y2="38"/>
+          </svg>
+          <div class="step-title">Return center receiving</div>
+          <div class="step-body">Your item arrives at the regional hub. Our team verifies, grades, and repacks it within 72 hours. Fees are flat per region.</div>
+          <div class="step-note">✓ Can be offset with returns coverage</div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <svg class="step-icon" viewBox="0 0 48 48" stroke="currentColor" stroke-width="1.5">
+            <path d="M8 8h32l-4 24H12L8 8Z"/>
+            <path d="M14 8l2 24M34 8l-2 24M8 20h32"/>
+          </svg>
+          <div class="step-title">Cross-border shipment</div>
+          <div class="step-body">Consolidated inventory ships back to your US facility on a regular cadence, far cheaper per unit than individual international parcels.</div>
+          <div class="step-note orange">Typically not offset with coverage, but optional with Forward Fulfillment</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FORWARD FULFILLMENT ──────────────────────────────────── -->
+  <section id="forward-fulfillment">
+    <div class="container">
+      <p class="section-label">Optional add-on</p>
+      <h2 class="section-title">Forward fulfillment</h2>
+      <div class="accent-rule"></div>
+      <p class="section-body">Skip the cross-border shipment entirely. With Forward Fulfillment, returned inventory stays in-country and gets re-sold directly to the next local customer, turning your return hub into a regional distribution center.</p>
+
+      <div class="ff-layout">
+        <div class="ff-flow">
+          <div class="ff-flow-item">
+            <div class="ff-flow-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20" stroke="currentColor" stroke-width="1.5" fill="none"><rect x="2" y="4" width="16" height="12" rx="1"/><line x1="2" y1="8" x2="18" y2="8"/></svg>
+            </div>
+            <div>
+              <div class="ff-flow-title">Return received at local hub</div>
+              <div class="ff-flow-desc">Item arrives at in-country facility in CA, AU, or GB</div>
+            </div>
+          </div>
+          <div class="ff-flow-item">
+            <div class="ff-flow-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20" stroke="currentColor" stroke-width="1.5" fill="none"><rect x="2" y="5" width="16" height="11" rx="1"/><polyline points="8 5 10 2 12 5"/></svg>
+            </div>
+            <div>
+              <div class="ff-flow-title">Verified, graded and repacked</div>
+              <div class="ff-flow-desc">Item quality assessed and Grade A items returned to saleable inventory within 72 hours</div>
+            </div>
+          </div>
+          <div class="ff-flow-item">
+            <div class="ff-flow-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20" stroke="currentColor" stroke-width="1.5" fill="none"><rect x="1" y="8" width="14" height="10" rx="1"/><path d="M15 10h2a2 2 0 012 2v4h-4"/><circle cx="5" cy="18" r="1.5"/><circle cx="13" cy="18" r="1.5"/></svg>
+            </div>
+            <div>
+              <div class="ff-flow-title">Fulfilled to next local customer</div>
+              <div class="ff-flow-desc">No cross-border shipment required. Ships from local hub to next buyer in the same country</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ff-benefits">
+          <div class="ff-benefit">
+            <div class="ff-benefit-title">30–60% lower shipping costs</div>
+            <div class="ff-benefit-desc">Skip cross-border freight entirely. Ship domestically from in-country hubs.</div>
+          </div>
+          <div class="ff-benefit">
+            <div class="ff-benefit-title">Inventory back in season</div>
+            <div class="ff-benefit-desc">Grade A items returned to saleable inventory before the season ends, no dead stock.</div>
+          </div>
+          <div class="ff-benefit">
+            <div class="ff-benefit-title">Return hub = distribution center</div>
+            <div class="ff-benefit-desc">Local hubs in Canada, Australia, and Great Britain become your regional fulfillment nodes.</div>
+          </div>
+          <div class="ff-benefit">
+            <div class="ff-benefit-title">Fewer miles, lower emissions</div>
+            <div class="ff-benefit-desc">Shorter delivery routes reduce your carbon footprint on every resold unit.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── SOCIAL PROOF ──────────────────────────────────────────── -->
+  <section id="brands">
+    <div class="container">
+      <div class="brands-intro">
+        <p class="section-label">Trusted by the world's best brands</p>
+        <h2 class="section-title">Global brands. Local returns.</h2>
+        <div class="accent-rule" style="margin: 24px auto 0;"></div>
+      </div>
+
+      <div class="brands-grid">
+        <div class="brand-cell"><span>SKIMS</span></div>
+        <div class="brand-cell"><span>Marcella New York</span></div>
+        <div class="brand-cell"><span>True Classic</span></div>
+        <div class="brand-cell"><span>PopFlex</span></div>
+        <div class="brand-cell"><span>Club L London</span></div>
+        <div class="brand-cell"><span>ʼ47</span></div>
+        <div class="brand-cell"><span>Suzy</span></div>
+        <div class="brand-cell"><span>Dippin' Daisys</span></div>
+        <div class="brand-cell"><span>Zorali</span></div>
+        <div class="brand-cell"><span>Dandy</span></div>
+        <div class="brand-cell"><span>Forme</span></div>
+        <div class="brand-cell"><span>and more →</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── CTA ────────────────────────────────────────────────────── -->
+  <section class="cta-section">
+    <div class="container">
+      <p class="cta-eyebrow">Get started</p>
+      <h2 class="cta-headline">Ready to return<br/>the right way?</h2>
+      <p class="cta-sub">See how Redo Return Local can cut your international return costs, delight shoppers, and turn your return hubs into a competitive advantage.</p>
+      <a href="https://redo.com/get-started/demo" class="cta-btn-large">Book a demo with Redo</a>
+    </div>
+  </section>
+
+  <!-- ─── FOOTER ─────────────────────────────────────────────────── -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-logo">
+        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjI1NSIgdmlld0JveD0iMCAwIDgwMCAyNTUiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNODAwIDBIMFYyNTVIODAwVjBaTTc0NS41NyAxMjYuMTQ5Qzc0NS41NyAxMzguMjM0IDc0My4wODggMTY1LjQ3MiA3MTUuNzkgMTg0LjA3OEM3MDguNzI3IDE4OC44NzQgNzAxLjg1NSAxOTIuMTM1IDY5My44MzcgMTk0LjQzN0M2ODYuMDExIDE5Ni43MzkgNjc0LjE3NSAxOTkuMDQgNjU1LjA4NSAxOTkuMDRDNjI2LjQ1MSAxOTkuMDQgNjA5LjA3OSAxOTIuNzEgNTk4LjE5OCAxODYuMTg4QzU5NC41NzEgMTg0LjA3OCA1ODcuODkgMTc5LjY2NyA1ODEuMjA5IDE3MS42MUM1NjYuODkxIDE1NC4xNTUgNTY2LjMxOSAxMzYuNTA3IDU2Ni4zMTkgMTI3Ljg3NkM1NjYuMzE5IDkzLjczMTggNTg0LjQ1NCA3Ni42NTk5IDU5NS41MjYgNjkuMTc5QzYwNi45NzkgNjEuMzE0NCA2MjMuMzk3IDU0LjQwODkgNjUzLjU1OCA1NC4wMjUzQzY1OS42NjcgNTQuMDI1MyA2NjUuNTg1IDU0LjAyNTMgNjcxLjY5MyA1NC42MDA4QzcwNy4zOTEgNTcuNDc4IDcyMy45OTkgNzEuNjcyNiA3MzMuMzUzIDg1LjA5OTlDNzM3Ljc0MyA5MS42MjE4IDc0NS41NyAxMDUuNjI1IDc0NS41NyAxMjYuMTQ5Wk02OTUuOTM3IDEyNi41MzNDNjk1LjkzNyAxMDkuMjY5IDY4OC42ODMgOTguMzM1NCA2ODMuNzIgOTMuOTIzNkM2ODEuODExIDkyLjAwNTQgNjc3LjIyOSA4OC41NTI3IDY3MC43MzkgODYuMjUwOUM2NjcuMzAzIDg1LjA5OTkgNjYzLjY3NiA4NC4xNDA5IDY1Ni40MjIgODQuMTQwOUM2NTAuMTIyIDg0LjE0MDkgNjQ0Ljk2OCA4NC43MTYzIDYzOS4wNSA4Ny4yMUM2MjMuMjA2IDkzLjkyMzYgNjE1Ljk1MiAxMTAuMjI4IDYxNS45NTIgMTI2LjcyNUM2MTUuOTUyIDEyOS4yMTggNjE2LjE0MyAxMzYuMTI0IDYxOC42MjQgMTQzLjIyMUM2MjYuNjQyIDE2Ny4zOSA2NDguNDA0IDE2OS4xMTcgNjU2LjYxMiAxNjkuMTE3QzY1OC45MDMgMTY5LjExNyA2NjcuNDk0IDE2OS4xMTcgNjc0Ljc0OCAxNjUuODU2QzY4OS44MjggMTU5LjE0MiA2OTUuOTM3IDE0MS44NzggNjk1LjkzNyAxMjYuNTMzWk01NTMuMTA2IDEyOC4yNTlDNTUzLjEwNiAxMzQuMzk3IDU1Mi41MzMgMTU2LjQ1NyA1MzguNzg5IDE3Mi41NjlDNTM2LjQ5OCAxNzUuNDQ3IDUzMS43MjUgMTgwLjI0MiA1MjMuNzA4IDE4NC44NDZDNTIwLjg0NCAxODYuMzggNTE0LjczNiAxODkuNjQxIDUwNi41MjcgMTkxLjc1MUM0OTkuNjU1IDE5My40NzggNDk0LjY5MSAxOTQuNDM3IDQ4MS4xMzggMTk0LjQzN0gzOTUuNjE2VjU5LjAxMjdINDcyLjE2NkM0NzcuNTExIDU5LjAxMjcgNDgyLjg1NiA1OS4yMDQ1IDQ4OC4yMDEgNTkuNTg4MUM1MTkuNTA4IDYyLjI3MzYgNTMzLjI1MyA3NS41MDkxIDU0MS4yNyA4Ny4yMUM1NTIuNzI0IDEwMy43MDYgNTUzLjEwNiAxMjAuOTcgNTUzLjEwNiAxMjguMjU5Wk01MDUuOTU0IDEyNy4xMDhDNTA1Ljk1NCAxMjIuODg4IDUwNS4zODIgMTA3LjczNSA0OTMuNTQ2IDk4LjUyNzNDNDgzLjgzNiA5MS4xNjM2IDQ3MC4yNTggOTEuMjIwNCA0NjYuMzExIDkxLjIzNjlDNDY2LjE0NiA5MS4yMzc2IDQ2NS45OTcgOTEuMjM4MiA0NjUuODY2IDkxLjIzODJINDQyLjc2OFYxNjMuNzQ2SDQ2Ny4zOTNDNDcwLjA2NiAxNjMuNzQ2IDQ3Mi45MjkgMTYzLjU1NCA0NzUuNzkzIDE2My4xN0M0OTIuNDAxIDE2MS4wNiA0OTguMzE5IDE1My41NzkgNTAxLjU2NCAxNDYuNjc0QzUwNS43NjMgMTM4LjA0MiA1MDUuOTU0IDEzMC43NTMgNTA1Ljk1NCAxMjcuMTA4Wk0yMjguNjg1IDE5NC40MzdIMzcyLjYyMVYxNjMuNzQ2SDI3Ni45ODJWMTQyLjA3SDM2My44MzlWMTExLjU3MUgyNzYuOTgyVjg5LjMySDM3MC45MDNWNTkuMDEyN0gyMjguNjg1VjE5NC40MzdaTTIwOS4xMDcgMTk0LjQzN0gxNTUuODQ3TDEyNy45NzYgMTQ1LjEzOUgxMDIuMzk2VjE5NC40MzdINTMuOTA4MlY1OS4wMTI3SDE1My4xNzRDMTcxLjMwOSA1OS4wMTI3IDE4OC42ODEgNjAuMzU1NCAxOTkuNTYyIDc3LjYxOTFDMjAyLjA0NCA4MS42NDczIDIwNi40MzQgODkuNzAzNyAyMDYuNDM0IDEwMS45OEMyMDYuNDM0IDEwOC4zMSAyMDUuMDk4IDEyNi4zNDEgMTg4LjEwOCAxMzUuNzRDMTg0Ljg2MyAxMzcuNjU4IDE4Mi4zODEgMTM4LjYxNyAxNzUuNTA5IDE0MC4zNDRMMjA5LjEwNyAxOTQuNDM3Wk0xNTguMzI4IDEwMi4xNzJDMTU4LjMyOCAxMDEuMDIxIDE1OC4xMzcgOTcuOTUxOSAxNTYuMjI4IDk1LjI2NjRDMTUyLjk4MyA5MC40NzA5IDE0Ny42MzggODkuNzAzNyAxNDIuNDg0IDg5LjcwMzdIMTAyLjM5NlYxMTQuNjRIMTM4LjY2NkMxNDcuODI5IDExNC42NCAxNTIuNjAxIDExMy40ODkgMTU1LjY1NiAxMDkuODQ1QzE1OC4xMzcgMTA2Ljc3NiAxNTguMzI4IDEwMy43MDYgMTU4LjMyOCAxMDIuMTcyWiIgZmlsbD0iIzE0MTQxNCIvPgo8L3N2Zz4K" alt="REDO" />
+      </div>
+      <p class="footer-copy">© 2026 Redo. Return Local is powered by the ReturnBear network.</p>
+    </div>
+  </footer>
+
+</body>
+</html>
